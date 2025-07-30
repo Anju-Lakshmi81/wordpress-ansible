@@ -1,6 +1,6 @@
 server_ip: 15.207.55.232
-domain_name: "anjulakshmi.shop"
-ssl_email: "sblakshmianjusb.09@gmail.com"
+domain_name: "domain-name"
+ssl_email: "your-email-id"
 
 wordpress_root: /home/ec2-user/wordpress_project/public
 wordpress_base: /home/ec2-user/wordpress_project
