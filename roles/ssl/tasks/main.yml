@@ -1,0 +1,34 @@
+---
+- name: Install Python and pip
+  become: true
+  package:
+    name:
+      - python3
+      - python3-pip
+    state: present
+
+- name: Upgrade pip
+  become: true
+  pip:
+    name: pip
+    state: latest
+    executable: pip3
+
+- name: Install Certbot via pip3
+  become: true
+  pip:
+    name:
+      - certbot
+      - certbot-nginx
+    executable: pip3
+
+- name: Generate SSL certificate with Certbot
+  become: true
+  command: >
+    /usr/local/bin/certbot --nginx --non-interactive --agree-tos
+    -m {{ ssl_email }}
+    -d {{ domain_name }} -d www.{{ domain_name }}
+  args:
+    creates: /etc/letsencrypt/live/{{ domain_name }}/fullchain.pem
+  notify: Reload Nginx
+

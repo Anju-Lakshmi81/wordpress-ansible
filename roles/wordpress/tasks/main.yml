@@ -1,0 +1,102 @@
+---
+- name: Ensure public directory exists
+  file:
+    path: "{{ nginx_root }}/public"
+    state: directory
+    owner: ec2-user
+    mode: '0755'
+
+- name: Check if WordPress is already installed
+  stat:
+    path: "{{ nginx_root }}/public/wp-config-sample.php"
+  register: wp_installed
+
+- name: Download latest WordPress
+  get_url:
+    url: https://wordpress.org/latest.tar.gz
+    dest: "{{ nginx_root }}/latest.tar.gz"
+    mode: '0644'
+  when: not wp_installed.stat.exists
+
+- name: Extract WordPress
+  unarchive:
+    src: "{{ nginx_root }}/latest.tar.gz"
+    dest: "{{ nginx_root }}"
+    remote_src: yes
+  when: not wp_installed.stat.exists
+
+- name: Move WordPress files to public directory (only if not already moved)
+  command: mv {{ nginx_root }}/wordpress/* {{ nginx_root }}/public/
+  args:
+    creates: "{{ nginx_root }}/public/wp-config-sample.php"
+
+- name: Remove extra wordpress directory and archive
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ nginx_root }}/wordpress"
+    - "{{ nginx_root }}/latest.tar.gz"
+  when: not wp_installed.stat.exists
+
+- name: Set ownership to nginx user
+  file:
+    path: "{{ nginx_root }}/public"
+    state: directory
+    recurse: yes
+    owner: nginx
+    group: nginx
+
+- name: Configure wp-config.php
+  template:
+    src: wp-config.php.j2
+    dest: "{{ wordpress_root }}/wp-config.php"
+
+- name: Include DB initialization file
+  include_tasks: db_init.yml
+
+- name: Copy wp-config.php with DB credentials
+  ansible.builtin.template:
+    src: wp-config.php.j2
+    dest: "{{ nginx_root }}/public/wp-config.php"
+    owner: nginx
+    group: nginx
+    mode: '0644'
+
+- name: Set permissions for directories to 755
+  find:
+    paths: "{{ nginx_root }}/public"
+    file_type: directory
+  register: wordpress_di
+
+- name: Include file/directory permission tasks
+  include_tasks: permissions.yml
+
+- name: Restart Nginx
+  service:
+    name: nginx
+    state: restarted
+
+- name: Upload WordPress URL update SQL file
+  template:
+    src: update_wp_url.sql.j2
+    dest: /tmp/update_wp_url.sql
+
+- name: Wait for MariaDB to be ready before WordPress DB update
+  ansible.builtin.wait_for:
+    port: 3306
+    host: "{{ db_host | default('127.0.0.1') }}"
+    state: started
+    delay: 5
+    timeout: 30
+
+#- name: Update WordPress siteurl and home in database
+ # mysql_db:
+  #  login_user: "{{ wp_db_user }}"
+   # login_password: "{{ wp_db_password }}"
+    #login_host: "{{ db_host | default('localhost') }}"
+    #name: "{{ wp_db_name }}"
+    #state: import
+    #target: /tmp/update_wp_url.sql
+  #when: domain_name is defined
+

@@ -1,0 +1,45 @@
+# Redirect HTTP to HTTPS 
+server {
+    listen 80;
+    server_name {{ domain_name }} www.{{ domain_name }};
+
+    return 301 https://$host$request_uri;
+}
+
+# Main Nginx block (Let’s Encrypt will generate HTTPS config)
+server {
+    listen 80;
+    server_name {{ domain_name }} www.{{ domain_name }};
+
+    root /home/ec2-user/wordpress_project/public;
+    index index.php index.html index.htm;
+
+    location / {
+        try_files $uri $uri/ /index.php?$args;
+    }
+
+    # ✅ Secure phpMyAdmin with HTTP Basic Auth
+    location /phpmyadmin {
+        root /home/ec2-user/wordpress_project/public;
+        index index.php index.html index.htm;
+
+        auth_basic "Restricted Access";
+        auth_basic_user_file /etc/nginx/.htpasswd;
+
+        location ~ \.php$ {
+            try_files $uri =404;
+            fastcgi_pass unix:/run/php-fpm/www.sock;
+            fastcgi_index index.php;
+            include fastcgi_params;
+            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        }
+    }
+
+    location ~ \.php$ {
+        include fastcgi_params;
+        fastcgi_pass unix:/run/php-fpm/www.sock;
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    }
+}
+

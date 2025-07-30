@@ -1,0 +1,44 @@
+---
+- name: Installing Nginx for our WordPress Site
+  ansible.builtin.yum:
+    name: nginx
+    state: present
+
+- name: Create Nginx document root
+  ansible.builtin.file:
+    path: "{{ nginx_root }}"
+    state: directory
+    owner: nginx
+    group: nginx
+    mode: '0755'
+    recurse: yes
+
+- name: Remove default Nginx config if it exists
+  ansible.builtin.file:
+    path: /etc/nginx/conf.d/default.conf
+    state: absent
+
+- name: Deploy Nginx site config for WordPress
+  ansible.builtin.template:
+    src: wordpress.conf.j2   # ✅ use the correct template for this site
+    dest: /etc/nginx/conf.d/wordpress.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Reload Nginx
+
+- name: Enable and start Nginx
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: true
+
+- name: Copy Nginx config for WordPress
+  template:
+    src: wordpress.conf.j2
+    dest: /etc/nginx/conf.d/wordpress.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart Nginx
+

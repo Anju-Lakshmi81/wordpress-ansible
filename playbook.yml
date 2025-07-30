@@ -1,0 +1,25 @@
+---
+- name: Deploy WordPress with Nginx, PHP, MariaDB and SSL
+  hosts: web
+  become: yes
+  
+  vars:
+     domain_name: anjulakshmi.shop
+     ssl_email: sblakshmianjusb.09@gmail.com
+
+  tasks:
+    - name: Debug to see if variables are passed correctly
+      debug:
+        msg: "Using {{ ssl_email }} for {{ domain_name }}"
+
+
+  roles:
+    - project_dir
+    - nginx
+    - php
+    - mariadb
+    - wordpress
+    - phpmyadmin
+    - sftp_user
+    - ssl
+

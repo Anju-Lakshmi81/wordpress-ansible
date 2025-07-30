@@ -1,0 +1,39 @@
+---
+
+- import_tasks: sftp.yml
+
+- name: Create WordPress project directory
+  file:
+    path: /home/ec2-user/wordpress_project
+    state: directory
+    owner: ec2-user
+    group: ec2-user
+    mode: '0755'
+
+- name: Create subdirectories for Nginx and public files
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: ec2-user
+    group: ec2-user
+    mode: '0755'
+  loop:
+    - /home/ec2-user/wordpress_project/nginx
+    - /home/ec2-user/wordpress_project/public
+
+- name: Create SFTP user 'wpuser'
+  ansible.builtin.user:
+    name: wpuser
+    shell: /sbin/nologin
+    password: "{{ sftp_user_password }}"
+    create_home: yes
+
+- name: Ensure correct ownership of WordPress directory for SFTP access
+  ansible.builtin.file:
+    path: /home/ec2-user/wordpress_project/public
+    state: directory
+    owner: wpuser
+    group: wpuser
+    mode: '0755'
+    recurse: yes
+

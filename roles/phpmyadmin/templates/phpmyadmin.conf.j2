@@ -1,0 +1,17 @@
+server {
+    listen 80;
+    server_name localhost;
+
+    location /phpmyadmin {
+        root /home/ec2-user/wordpress_project;
+        index index.php index.html;
+
+        location ~ \.php$ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php-fpm/www.sock;
+            fastcgi_index index.php;
+            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        }
+    }
+}
+

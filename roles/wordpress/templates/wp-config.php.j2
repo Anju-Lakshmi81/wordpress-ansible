@@ -1,0 +1,26 @@
+<?php
+define( 'DB_NAME', '{{ wp_db_name }}' );
+define( 'DB_USER', '{{ wp_db_user }}' );
+define( 'DB_PASSWORD', '{{ wp_db_password }}' );
+define( 'DB_HOST', 'localhost' );
+define( 'DB_CHARSET', 'utf8' );
+define( 'DB_COLLATE', '' );
+
+{% for key in [
+  'AUTH_KEY', 'SECURE_AUTH_KEY', 'LOGGED_IN_KEY', 'NONCE_KEY',
+  'AUTH_SALT', 'SECURE_AUTH_SALT', 'LOGGED_IN_SALT', 'NONCE_SALT'
+] %}
+define('{{ key }}', '{{ lookup("password", "/dev/null length=64 chars=ascii_letters") }}');
+{% endfor %}
+
+$table_prefix = 'wp_';
+
+define( 'WP_DEBUG', false );
+define( 'FS_METHOD', 'direct' );
+
+// Define custom site URL and home only if database isn't initialized yet
+if (!defined('ABSPATH')) {
+  define('ABSPATH', dirname(__FILE__) . '/');
+}
+require_once(ABSPATH . 'wp-settings.php');
+

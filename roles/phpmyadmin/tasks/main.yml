@@ -1,0 +1,62 @@
+---
+- name: Install required packages for phpMyAdmin
+  ansible.builtin.yum:
+    name:
+      - wget
+      - unzip
+    state: present
+
+- name: Create phpMyAdmin directory in project path
+  file:
+    path: /home/ec2-user/wordpress_project/phpmyadmin
+    state: directory
+    owner: nginx
+    group: nginx
+    mode: '0755'
+    recurse: yes
+
+- name: Download phpMyAdmin .tar.gz
+  ansible.builtin.get_url:
+    url: https://www.phpmyadmin.net/downloads/phpMyAdmin-latest-all-languages.tar.gz
+    dest: /tmp/phpmyadmin.tar.gz
+
+- name: Extract phpMyAdmin archive
+  unarchive:
+    src: /tmp/phpmyadmin.tar.gz
+    dest: /home/ec2-user/wordpress_project/phpmyadmin
+    remote_src: yes
+    extra_opts: [--strip-components=1]
+    owner: nginx
+    group: nginx
+    mode: '0755'
+  notify: Restart Nginx
+
+- name: Ensure permissions for phpMyAdmin directory
+  file:
+    path: /home/ec2-user/wordpress_project/phpmyadmin
+    state: directory
+    recurse: yes
+    owner: nginx
+    group: nginx
+    mode: '0755'
+
+- name: Deploy phpMyAdmin Nginx config
+  template:
+    src: phpmyadmin.conf.j2
+    dest: /etc/nginx/conf.d/phpmyadmin.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart Nginx
+
+
+- name: Install httpd-tools (for htpasswd)
+  ansible.builtin.package:
+    name: httpd-tools
+    state: present
+
+- name: Create .htpasswd for phpMyAdmin
+  ansible.builtin.command: htpasswd -cb /etc/nginx/.htpasswd pmauser "{{ phpmyadmin_password }}"
+  args:
+    creates: /etc/nginx/.htpasswd
+

@@ -1,0 +1,11 @@
+- name: Ensure sshd_config contains SFTP restrictions for wpuser
+  blockinfile:
+    path: /etc/ssh/sshd_config
+    marker: "# {mark} ANSIBLE MANAGED BLOCK FOR SFTP"
+    block: |
+      Match User wpuser
+        ChrootDirectory /home/ec2-user/wordpress_project
+        ForceCommand internal-sftp
+        AllowTCPForwarding no
+        X11Forwarding no
+

@@ -1,0 +1,68 @@
+---
+- name: Create SFTP group
+  ansible.builtin.group:
+    name: sftpusers
+    state: present
+
+- name: Create SFTP user 'wpuser'
+  ansible.builtin.user:
+    name: wpuser
+    group: sftpusers
+    shell: /sbin/nologin
+    home: /home/wpuser
+    create_home: yes
+    password: "{{ 'sftppass' | password_hash('sha512') }}"
+
+- name: Set correct ownership and permissions for /home/wpuser
+  ansible.builtin.file:
+    path: /home/wpuser
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Create uploads directory for wpuser
+  ansible.builtin.file:
+    path: /home/wpuser/uploads
+    state: directory
+    owner: wpuser
+    group: sftpusers
+    mode: '0755'
+
+- name: Create project directory inside uploads
+  ansible.builtin.file:
+    path: /home/wpuser/uploads/wordpress_project
+    state: directory
+    owner: wpuser
+    group: sftpusers
+    mode: '0755'
+
+
+- name: Configure SFTP access for wpuser
+  blockinfile:
+    path: /etc/ssh/sshd_config
+    marker: "# {mark} ANSIBLE MANAGED BLOCK FOR SFTP WPUSER"
+    block: |
+      Match User wpuser
+        ChrootDirectory /home/wpuser
+        ForceCommand internal-sftp
+        AllowTCPForwarding no
+        X11Forwarding no
+        PasswordAuthentication yes
+  notify: Restart SSH
+
+- name: Create SFTP to WordPress sync script
+  ansible.builtin.copy:
+    dest: /usr/local/bin/sync_uploads.sh
+    content: |
+      #!/bin/bash
+      rsync -av /home/wpuser/uploads/wordpress_project/ /home/ec2-user/wordpress_project/public/wp-content/uploads/
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Restart SSH service
+  ansible.builtin.service:
+    name: sshd
+    state: restarted
+

@@ -1,0 +1,29 @@
+---
+- name: Install PHP and necessary extensions
+  ansible.builtin.yum:
+    name:
+      - php
+      - php-fpm
+      - php-mysqlnd
+      - php-json
+      - php-gd
+      - php-xml
+      - php-mbstring
+      - php-cli
+    state: present
+
+- name: Deploy php-fpm configuration for WordPress (via UNIX socket)
+  ansible.builtin.template:
+    src: www.conf.j2
+    dest: /etc/php-fpm.d/www.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart php-fpm
+
+- name: Enable and start php-fpm
+  ansible.builtin.service:
+    name: php-fpm
+    state: started
+    enabled: true
+
